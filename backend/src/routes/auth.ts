@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { signUp } from "../controllers/authControllers";
+import { signUp, verifyEmail } from "../controllers/authControllers";
 
 const authRouter = Router()
 
 
 authRouter.post("/sign-up", signUp)
+authRouter.get("/verify-email", verifyEmail)
 
 
 

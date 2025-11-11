@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output = "../src/generated/client"
 }
 
 datasource db {
@@ -14,6 +13,9 @@ model User {
   name      String?
   password  String
   rooms     Room[]
+  verificationCode String?
+  isVerified Boolean  @default(false)
+  verifyExpires DateTime?
   createdAt DateTime @default(now())
 }
 
