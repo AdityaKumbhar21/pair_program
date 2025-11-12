@@ -61,31 +61,78 @@ export async function signUp(req: Request, res:Response){
     }
 }
 
+export async function signIn(req: Request, res: Response){
+    const {email, password} = req.body
+
+    if(!email || !password){
+        return res.status(400).json({"message": "Email and Password are required"})
+    }
+
+    try {
+        const user = await prisma.user.findFirst({
+            where: {email}
+        })
+
+        if(!user){
+            return res.status(404).json({"message": "User not found"})
+        }
+
+        const hashedPassword = user.password
+
+        bcrypt.compare(password, hashedPassword, (err, result)=>{
+            if(err){
+                return res.status(400).json({"message": "Bcrypt error"})
+            }
+
+            if(result){
+                const token = generateToken(user.id)
+                res.cookie("token", token)
+                return res.status(200).json({"message": "Sign-in Successfull"})
+            }
+
+            return res.status(400).json({"message": "Email or Password is Invalid"})
+
+        })
+    }
+    catch (error) {
+        console.error("Error signing in:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export async function signOut(req:Request, res: Response) {
+    try {
+        res.cookie("token", "")
+        return res.status(200).json({ message: "SignOut successfull" });
+    } catch (error) {
+        console.error("Error signing out:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
 
 export async function verifyEmail(req: Request, res: Response){ 
-    const { email, code } = req.query;
-
+    const { email, code } = req.query;    
     if (!email || !code) {
         return res.status(400).json({ message: "Email and code are required" });
     }
-
+    
     try {
         const user = await prisma.user.findUnique({
             where: { email: String(email) },
         });
-
+        
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-
+        
         if (user.isVerified) {
             return res.status(400).json({ message: "Email is already verified" });
         }
-
+        
         if (user.verificationCode !== String(code)) {
             return res.status(400).json({ message: "Invalid verification code" });
         }
-
+        
         if (user.verifyExpires && user.verifyExpires < new Date()) {
             return res.status(400).json({ message: "Verification code has expired" });
         }
@@ -98,10 +145,47 @@ export async function verifyEmail(req: Request, res: Response){
                 verifyExpires: null,
             },
         });
-
+        
         return res.status(200).json({ message: "Email verified successfully" });
     } catch (error) {
         console.error("Error verifying email:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export async function resendVerification(req: Request, res: Response){
+    const {email} = req.query
+    
+    if(!email) {
+        return res.status(400).json({ message: "Email is required" });
+    }
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email: String(email) },
+        });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        if (user.isVerified) {
+            return res.status(400).json({ message: "Email is already verified" });
+        }
+
+        const code = user.verificationCode || generateOTP();
+        const expires = new Date(Date.now() + 10 * 60 * 1000);
+        
+        await sendVerificationEmail(String(email), code);
+        await prisma.user.update({
+            where: { email: String(email) },
+            data: {
+                verificationCode: code,
+                verifyExpires: expires,
+            },
+        });
+
+        res.status(200).json({ message: "Verification email resent successfully" });
+    } catch (error) {
+        console.error("Error resending verification email:", error);
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }

@@ -3,10 +3,11 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function sendVerificationEmail(email:string, token:string){
-    const verifyLink = `${process.env.FRONTEND_URL || "https://localhost:3000"}/verify-email?token=${token}`
+    const verifyLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/api/auth/verify-email?code=${token}&email=${email}`;
 
+    try {
     await resend.emails.send({
-        from: 'CodePair Pro <no-reply@yourdomain.com>',
+        from: 'Pair Program <onboarding@resend.dev>',
         to: email,
         subject: 'Verify your email – CodePair Pro',
         html: `
@@ -22,4 +23,8 @@ export async function sendVerificationEmail(email:string, token:string){
             </div>
             `,
     })
+} catch (error) {
+    console.error("Error sending verification email:", error);
+    throw new Error("Failed to send verification email");   
+}
 }
