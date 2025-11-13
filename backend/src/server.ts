@@ -5,6 +5,8 @@ import { Server } from 'socket.io';
 import http from "http";
 import authRouter from './routes/auth';
 import cookieParser from 'cookie-parser';
+import roomRouter from './routes/rooms';
+import { getRoomByShortId } from './controllers/roomController';
 //import {authMiddleware} from "./middlewares/auth.js"
 
 
@@ -22,7 +24,9 @@ const io = new Server(server, {
 })
 
 app.use("/api/auth", authRouter)
+app.use("/api/rooms", roomRouter)
 
+app.get("/rooms/:shortId",getRoomByShortId)
 
 io.on("connection", (socket) => {
     console.log("User connected", socket.id);
