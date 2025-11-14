@@ -88,8 +88,8 @@ export async function getRoomByShortId(req: Request, res: Response) {
         }
 
         return res.status(200).json({
-            ok: false,
-            message:"shortId required to access the room",
+            ok: true,
+            message:"User joined the room successfully",
             roomId: room.id,
             shortId: room.shortId,
             host: room.host
