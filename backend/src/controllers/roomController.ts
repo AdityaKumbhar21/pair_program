@@ -20,6 +20,7 @@ export async function createRoom(req:Request, res: Response) {
             data:{
                 shortId: nanoid(8),
                 host: {connect: {id: hostId}},
+                isActive: true
             },
             include:{
                 host:{
@@ -28,28 +29,14 @@ export async function createRoom(req:Request, res: Response) {
             }
         })
 
-        if(!user.isVerified){
-            await prisma.room.update({
-                where: { id: room.id },
-                data: { isActive: false }
-            })
-
-            return res.status(200).json({
-                ok: true,
-                message: "Room created successfully, but your email is not verified. Please verify your email to activate the room.",
-                joinLink: `${process.env.FRONTEND_URL}/rooms/${room.shortId}` || `http://localhost:3000/rooms/${room.shortId}`,
-                isActive: room.isActive,
-                hostName: room.host.name || room.host.email.split("@")[0],
-            })
-        } else {
-            return res.status(200).json({
-                ok: true,
-                message: "Room created successfully.",
-                joinLink: `${process.env.FRONTEND_URL || `http://localhost:3000`}/rooms/${room.shortId}`,
-                isActive: room.isActive,
-                hostName: room.host.name || room.host.email.split("@")[0],
-            })
-        }
+        return res.status(200).json({
+            ok: true,
+            message: "Room created successfully.",
+            shortId: room.shortId,
+            joinLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/room/${room.shortId}`,
+            isActive: room.isActive,
+            hostName: room.host.name || room.host.email.split("@")[0],
+        })
     } catch (error) {
         console.log("Error creating room: ", error);
         return res.status(500).json({
@@ -103,4 +90,43 @@ export async function getRoomByShortId(req: Request, res: Response) {
         
     }
 
+}
+
+export async function getUserRooms(req: Request, res: Response) {
+    try {
+        const userId = req.user?.id;
+        
+        if (!userId) {
+            return res.status(401).json({
+                ok: false,
+                message: "Unauthorized"
+            });
+        }
+
+        const rooms = await prisma.room.findMany({
+            where: {
+                hostId: userId
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            select: {
+                id: true,
+                shortId: true,
+                createdAt: true,
+                isActive: true,
+            }
+        });
+
+        return res.status(200).json({
+            ok: true,
+            rooms
+        });
+    } catch (error) {
+        console.error("Error getting user rooms:", error);
+        return res.status(500).json({
+            ok: false,
+            message: "Internal Server Error"
+        });
+    }
 }

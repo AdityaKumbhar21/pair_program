@@ -45,8 +45,7 @@ export async function signUp(req: Request, res:Response){
             const token = generateToken(newUser.id)
 
             res.cookie("token", token)
-            
-            await sendVerificationEmail(newUser.email,verifyCode)
+            await sendVerificationEmail(email,verifyCode)
 
             return res.status(201).json({
                 "ok": true,
@@ -75,7 +74,8 @@ export async function signIn(req: Request, res: Response){
             "message": "Email and Password are required"
         })
     }
-
+    
+    
     try {
         const user = await prisma.user.findFirst({
             where: {email}
@@ -100,10 +100,21 @@ export async function signIn(req: Request, res: Response){
 
             if(result){
                 const token = generateToken(user.id)
-                res.cookie("token", token)
+                res.cookie("token", token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === "production",
+                    sameSite: "strict",
+                    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+                })
                 return res.status(200).json({
                     "ok": true,
-                    "message": "Sign-in Successfull"
+                    "message": "Sign-in Successfull",
+                    "user": {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        isVerified: user.isVerified
+                    }
                 })
             }
 
@@ -251,6 +262,48 @@ export async function resendVerification(req: Request, res: Response){
         return res.status(500).json({ 
             ok: false,
             message: "Internal Server Error" 
+        });
+    }
+}
+
+export async function getCurrentUser(req: Request, res: Response) {
+    try {
+        const userId = req.user?.id;
+        
+        if (!userId) {
+            return res.status(401).json({
+                ok: false,
+                message: "Unauthorized"
+            });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                isVerified: true,
+                createdAt: true,
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                ok: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            ok: true,
+            user
+        });
+    } catch (error) {
+        console.error("Error getting current user:", error);
+        return res.status(500).json({
+            ok: false,
+            message: "Internal Server Error"
         });
     }
 }

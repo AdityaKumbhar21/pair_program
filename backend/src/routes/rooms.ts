@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/auth";
-import { createRoom } from "../controllers/roomController";
+import { createRoom, getUserRooms } from "../controllers/roomController";
 
 
 const roomRouter = Router()
@@ -13,6 +13,7 @@ roomRouter.get("/room", authMiddleware, (req, res)=>{
 })
 
 roomRouter.post("/create-room", authMiddleware, createRoom)
+roomRouter.get("/user", authMiddleware, getUserRooms)
 
 
 

@@ -1,23 +1,25 @@
-import { Routes, Route } from 'react-router-dom'
-import RoomPage from './pages/RoomPage'
-import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import NewLandingPage from './pages/NewLandingPage';
+import SignupPage from './pages/SignupPage';
+import LoginPage from './pages/LoginPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import HomePage from './pages/HomePage';
+import RoomPage from './pages/RoomPage';
+import './App.css';
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/room/:shortId" element={<RoomPage />} />
-    </Routes>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<NewLandingPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/room/:shortId" element={<RoomPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-function HomePage() {
-  return (
-    <div style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>Pair Programming</h1>
-      <p>Create or join a room to start coding together</p>
-    </div>
-  )
-}
-
-export default App
+export default App;

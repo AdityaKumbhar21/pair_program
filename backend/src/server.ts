@@ -13,14 +13,20 @@ import * as Y from 'yjs';
 const app = express()
 const PORT = process.env.PORT
 
-app.use(cors())
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+}))
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 app.use(cookieParser())
 
 const server = http.createServer(app)
 const io = new Server(server, {
-    cors: {origin: "*"}
+    cors: {
+        origin: "http://localhost:5173",
+        credentials: true
+    }
 })
 
 app.use("/api/auth", authRouter)

@@ -3,7 +3,7 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function sendVerificationEmail(email:string, token:string){
-    const verifyLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/api/auth/verify-email?code=${token}&email=${email}`;
+    const verifyLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?code=${token}&email=${email}`;
 
     try {
     await resend.emails.send({
@@ -23,8 +23,10 @@ export async function sendVerificationEmail(email:string, token:string){
             </div>
             `,
     })
+    console.log("email sent");
+    
 } catch (error) {
-    console.error("Error sending verification email:", error);
+    console.log("Error sending verification email:", error);
     throw new Error("Failed to send verification email");   
 }
 }
