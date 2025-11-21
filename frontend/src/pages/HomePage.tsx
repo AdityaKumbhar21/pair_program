@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import {
-  Code2,
   LogOut,
   Sparkles,
   AlertTriangle,
@@ -34,6 +33,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = 'Pair Program — Home';
+  }, []);
 
   useEffect(() => {
     fetchUser();
@@ -119,9 +122,9 @@ export default function HomePage() {
         <aside className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-white/10 bg-neutral-950/70 backdrop-blur-2xl">
           <div className="p-6 flex flex-col gap-8 h-full">
             <div className="flex items-center justify-between">
-              <Link to="/" className="flex items-center gap-2 text-white">
-                <Code2 className="w-7 h-7" />
-                <span className="text-xl font-semibold">Pair Program</span>
+              <Link to="/" className="flex items-center gap-3 text-white">
+                <img src="/logo.png" alt="Pair Program logo" className="h-8 w-8 rounded-xl border border-white/15 bg-white/5 p-1" />
+                <span className="text-xl font-semibold tracking-tight">Pair Program</span>
               </Link>
               <div className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/70 border border-white/15">
                 v1.0

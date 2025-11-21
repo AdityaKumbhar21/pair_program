@@ -1,8 +1,51 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { Code2, Share2, Zap, ArrowRight, ClipboardCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+interface User {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
 export default function LandingPage() {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    document.title = 'Pair Program — Welcome';
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUser = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/auth/me`, {
+          withCredentials: true,
+        });
+        if (isMounted) {
+          setUser(response.data.user as User);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setUser(null);
+        }
+      }
+    };
+
+    fetchUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const isAuthenticated = Boolean(user);
+
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       <motion.div
@@ -32,24 +75,31 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Code2 className="w-8 h-8 text-blue-500" />
-            <span className="text-2xl font-bold">
-              Pair Program
-            </span>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Pair Program logo" className="h-9 w-9 rounded-xl border border-white/15 bg-white/5 p-1" />
+            <span className="text-2xl font-semibold tracking-tight">Pair Program</span>
           </div>
           <div className="flex items-center gap-4">
+            {isAuthenticated ? (
+              <Link
+                to="/home"
+                className="text-gray-300 hover:text-white transition-colors"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="text-gray-300 hover:text-white transition-colors"
+              >
+                Login
+              </Link>
+            )}
             <Link
-              to="/login"
-              className="text-gray-300 hover:text-white transition-colors"
+              to={isAuthenticated ? '/home' : '/signup'}
+              className="bg-white text-black hover:bg-neutral-200 px-6 py-2 rounded-full font-medium transition-all"
             >
-              Login
-            </Link>
-            <Link
-              to="/signup"
-              className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-full font-medium transition-all"
-            >
-              Get Started
+              {isAuthenticated ? 'Go to dashboard' : 'Get started'}
             </Link>
           </div>
         </div>
@@ -74,17 +124,17 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }}>
                 <Link
-                  to="/signup"
+                  to={isAuthenticated ? '/home' : '/signup'}
                   className="bg-white text-black hover:bg-neutral-200 px-8 py-4 rounded-full font-semibold text-lg transition-all inline-flex items-center justify-center gap-2"
                 >
                   <Zap className="w-5 h-5" />
-                  Host an interview
+                  {isAuthenticated ? 'Open dashboard' : 'Host an interview'}
                 </Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }}>
                 <Link
                   to="/home"
-                  className="border border-white/20 hover:border-white/40 px-8 py-4 rounded-full font-semibold text-lg transition-all inline-flex items-center gap-2"
+                  className="border border-white/20 hover:border-white/40 px-8 py-4 rounded-full font-semibold text-lg transition-all inline-flex items-center gap-2 text-white"
                 >
                   <span>Explore a demo room</span>
                   <ArrowRight className="w-5 h-5" />
@@ -144,7 +194,7 @@ export default function LandingPage() {
                 whileHover={{ y: -6 }}
                 className="bg-neutral-950/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all group"
               >
-                <div className="w-12 h-12 rounded-xl border border-white/10 flex items-center justify-center mb-4 group-hover:border-white/25 transition-all">
+                <div className="w-12 h-12 rounded-xl border border-white/12 flex items-center justify-center mb-4 bg-black/40 group-hover:border-white/25 transition-all">
                   {feature.icon}
                 </div>
                 <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
@@ -165,11 +215,11 @@ export default function LandingPage() {
             Pair Program keeps candidates focused and interview panels aligned inside a single collaborative room.
           </p>
           <Link
-            to="/signup"
+            to={isAuthenticated ? '/home' : '/signup'}
             className="bg-white text-black hover:bg-neutral-200 px-8 py-4 rounded-full font-semibold text-lg transition-all inline-flex items-center gap-2"
           >
             <Zap className="w-5 h-5" />
-            Start interviewing quicker
+            {isAuthenticated ? 'Open dashboard' : 'Start interviewing quicker'}
           </Link>
         </div>
       </section>

@@ -13,6 +13,11 @@ export default function VerifyEmailPage() {
 
   const email = searchParams.get('email') || '';
   const code = searchParams.get('code') || '';
+  const redirect = searchParams.get('redirect') || '';
+
+  useEffect(() => {
+    document.title = 'Pair Program — Verify Email';
+  }, []);
 
   useEffect(() => {
     if (code && email) {
@@ -30,7 +35,10 @@ export default function VerifyEmailPage() {
       });
       setStatus('success');
       setMessage('Email verified! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => {
+        const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : '';
+        navigate(`/login${query}`);
+      }, 2000);
     } catch (err: any) {
       setStatus('error');
       setMessage(err.response?.data?.message || 'Verification failed');
@@ -54,61 +62,80 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-8 text-center shadow-2xl">
-        {status === 'verifying' && (
-          <>
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-6"></div>
-            <h2 className="text-2xl font-bold text-white mb-2">Verifying Email...</h2>
-            <p className="text-gray-400">Please wait while we verify your email address.</p>
-          </>
-        )}
+    <div className="relative min-h-screen bg-black text-white overflow-hidden">
+      <div className="absolute inset-0">
+        <div className="absolute -top-32 -left-40 w-96 h-96 bg-white/6 blur-3xl rounded-full" />
+        <div className="absolute top-32 right-0 w-xl h-144 bg-white/5 blur-3xl rounded-full" />
+        <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-3xl h-192 bg-white/8 blur-3xl rounded-full" />
+      </div>
 
-        {status === 'success' && (
-          <>
-            <div className="text-green-500 text-6xl mb-6">✓</div>
-            <h2 className="text-2xl font-bold text-white mb-2">Email Verified!</h2>
-            <p className="text-gray-400">{message}</p>
-          </>
-        )}
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md space-y-8 text-center">
+          <Link to="/" className="mx-auto flex w-fit items-center gap-3 text-white/90">
+            <img src="/logo.png" alt="Pair Program logo" className="h-9 w-9 rounded-xl border border-white/15 bg-white/5 p-1" />
+            <span className="text-2xl font-semibold tracking-tight">Pair Program</span>
+          </Link>
 
-        {status === 'error' && (
-          <>
-            <div className="text-yellow-500 text-6xl mb-6">⚠</div>
-            <h2 className="text-2xl font-bold text-white mb-2">Verification Pending</h2>
-            <p className="text-gray-400 mb-6">{message}</p>
-
-            {email && !code && (
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
-                <p className="text-sm text-gray-300 mb-2">Verification link sent to:</p>
-                <p className="font-mono text-blue-400">{email}</p>
+          <div className="rounded-2xl border border-white/12 bg-white/5 p-8 shadow-2xl backdrop-blur-xl">
+            {status === 'verifying' && (
+              <div className="space-y-4">
+                <div className="mx-auto h-16 w-16 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                <h2 className="text-2xl font-semibold">Verifying email…</h2>
+                <p className="text-sm text-gray-400">Hang tight while we confirm your address.</p>
               </div>
             )}
 
-            <div className="space-y-3">
-              {email && (
-                <button
-                  onClick={handleResend}
-                  disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-xl font-medium transition-all disabled:opacity-50"
-                >
-                  {loading ? 'Sending...' : 'Resend Verification Email'}
-                </button>
-              )}
-              
-              <Link
-                to="/home"
-                className="block w-full bg-gray-800 hover:bg-gray-700 text-white py-3 px-6 rounded-xl font-medium transition-all"
-              >
-                Skip for Now → Go to Dashboard
-              </Link>
-              
-              <p className="text-xs text-gray-500 mt-4">
-                You can verify your email later from your dashboard
-              </p>
-            </div>
-          </>
-        )}
+            {status === 'success' && (
+              <div className="space-y-4">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-3xl text-green-400">
+                  ✓
+                </div>
+                <h2 className="text-2xl font-semibold">Email verified</h2>
+                <p className="text-sm text-gray-400">{message}</p>
+              </div>
+            )}
+
+            {status === 'error' && (
+              <div className="space-y-6">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/10 text-3xl text-yellow-400">
+                  ⚠
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-semibold">Verification pending</h2>
+                  <p className="text-sm text-gray-400">{message}</p>
+                </div>
+
+                {email && !code && (
+                  <div className="rounded-xl border border-white/12 bg-white/5 p-4 text-left">
+                    <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Email sent to</p>
+                    <p className="mt-2 font-mono text-sm text-gray-200">{email}</p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {email && (
+                    <button
+                      onClick={handleResend}
+                      disabled={loading}
+                      className="w-full rounded-full border border-white/20 px-6 py-3 text-sm font-medium text-white transition hover:border-white/40 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {loading ? 'Sending…' : 'Resend verification email'}
+                    </button>
+                  )}
+
+                  <Link
+                    to={redirect || '/home'}
+                    className="block w-full rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                  >
+                    Skip for now → Go to {redirect ? 'Room' : 'Dashboard'}
+                  </Link>
+
+                  <p className="text-xs text-gray-500">You can verify later from your dashboard.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
