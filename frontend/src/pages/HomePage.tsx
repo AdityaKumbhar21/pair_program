@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -10,7 +10,21 @@ import {
   Calendar,
   Users,
   ArrowRight,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/components/ui/toast';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -32,7 +46,9 @@ export default function HomePage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     document.title = 'Pair Program — Home';
@@ -67,6 +83,29 @@ export default function HomePage() {
     }
   };
 
+  const handleDeleteRoom = async (shortId: string) => {
+    setDeletingRoomId(shortId);
+    try {
+      await axios.delete(`${API_URL}/api/rooms/${shortId}`, {
+        withCredentials: true,
+      });
+      setRooms((prev) => prev.filter((room) => room.shortId !== shortId));
+      toast({
+        title: 'Room deleted',
+        description: `Room ${shortId} has been removed.`,
+        variant: 'success',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Delete failed',
+        description: error?.response?.data?.message || 'Failed to delete room',
+        variant: 'error',
+      });
+    } finally {
+      setDeletingRoomId(null);
+    }
+  };
+
   const handleCreateRoom = async () => {
     setCreating(true);
     try {
@@ -79,7 +118,11 @@ export default function HomePage() {
       );
       navigate(`/room/${response.data.shortId}`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to create room');
+      toast({
+        title: 'Create failed',
+        description: err.response?.data?.message || 'Failed to create room',
+        variant: 'error',
+      });
     } finally {
       setCreating(false);
     }
@@ -285,19 +328,63 @@ export default function HomePage() {
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {rooms.map((room, index) => (
-                  <motion.button
+                  <motion.div
                     key={room.id}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => navigate(`/room/${room.shortId}`)}
-                    className="text-left rounded-2xl border border-white/12 bg-white/5 p-6 hover:border-white/25 hover:bg-white/10 transition-all group"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        navigate(`/room/${room.shortId}`);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    className="text-left rounded-2xl border border-white/12 bg-white/5 p-6 hover:border-white/25 hover:bg-white/10 transition-all group cursor-pointer focus:outline-none focus:border-white/40"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <p className="font-mono text-lg font-semibold text-gray-200 group-hover:text-white">
                         {room.shortId}
                       </p>
-                      <Calendar className="w-5 h-5 text-gray-500" />
+                      <div className="flex items-center gap-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(event) => event.stopPropagation()}
+                              disabled={deletingRoomId === room.shortId}
+                              className="inline-flex items-center justify-center rounded-full border border-white/15 bg-black/40 p-2 text-gray-400 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {deletingRoomId === room.shortId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent onClick={(event: MouseEvent) => event.stopPropagation()}>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this room?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Collaborators will immediately lose access to <span className="font-mono text-white/90">{room.shortId}</span>. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                type="button"
+                                onClick={() => handleDeleteRoom(room.shortId)}
+                                disabled={deletingRoomId === room.shortId}
+                              >
+                                {deletingRoomId === room.shortId ? 'Deleting…' : 'Delete room'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <Calendar className="w-5 h-5 text-gray-500" />
+                      </div>
                     </div>
                     <p className="text-sm text-gray-400 mt-4">
                       Created on {new Date(room.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -306,7 +393,7 @@ export default function HomePage() {
                       Rejoin session
                       <ArrowRight className="w-4 h-4" />
                     </div>
-                  </motion.button>
+                  </motion.div>
                 ))}
               </div>
             )}

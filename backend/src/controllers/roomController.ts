@@ -46,7 +46,6 @@ export async function createRoom(req:Request, res: Response) {
     }
 }
 
-
 export async function getRoomByShortId(req: Request, res: Response) {
     const {shortId} = req.params
     
@@ -124,6 +123,53 @@ export async function getUserRooms(req: Request, res: Response) {
         });
     } catch (error) {
         console.error("Error getting user rooms:", error);
+        return res.status(500).json({
+            ok: false,
+            message: "Internal Server Error"
+        });
+    }
+}
+
+export async function deleteRoom(req: Request, res: Response) {
+    try {
+        const userId = req.user?.id;
+        const { shortId } = req.params;
+
+        if (!userId) {
+            return res.status(401).json({
+                ok: false,
+                message: "Unauthorized"
+            });
+        }
+
+        const room = await prisma.room.findUnique({
+            where: { shortId }
+        });
+
+        if (!room) {
+            return res.status(404).json({
+                ok: false,
+                message: "Room not found"
+            });
+        }
+
+        if (room.hostId !== userId) {
+            return res.status(403).json({
+                ok: false,
+                message: "Forbidden: You are not the host of this room"
+            });
+        }
+
+        await prisma.room.delete({
+            where: { shortId }
+        });
+
+        return res.status(200).json({
+            ok: true,
+            message: "Room deleted successfully"
+        });
+    } catch (error) {
+        console.error("Error deleting room:", error);
         return res.status(500).json({
             ok: false,
             message: "Internal Server Error"

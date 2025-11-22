@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
 import axios from 'axios';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Loader2, Sparkles } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import * as Y from 'yjs';
 import { MonacoBinding } from 'y-monaco';
@@ -32,6 +32,11 @@ interface User {
   id: string;
   name: string | null;
   email: string;
+}
+
+interface FeedbackResult {
+  timeComplexity: string;
+  spaceComplexity: string;
 }
 
 type IncomingUpdate =
@@ -68,6 +73,9 @@ export default function RoomPage() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [language, setLanguage] = useState<LanguageValue>('javascript');
   const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackResult | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = shortId ? `Pair Program — Room ${shortId}` : 'Pair Program — Room';
@@ -252,6 +260,92 @@ export default function RoomPage() {
     }
   }, [shortId]);
 
+  const handleGenerateFeedback = useCallback(async () => {
+    if (!editorRef.current) {
+      return;
+    }
+
+    const code: string = editorRef.current.getValue?.() || '';
+
+    if (!code.trim()) {
+      setFeedback(null);
+      setFeedbackError('Add some code in the editor before requesting feedback.');
+      return;
+    }
+
+    setFeedbackError(null);
+    setFeedback(null);
+    setFeedbackLoading(true);
+
+    const parsePayload = (payload: any): FeedbackResult | null => {
+      if (!payload) {
+        return null;
+      }
+
+      if (typeof payload === 'string') {
+        try {
+          const parsed = JSON.parse(payload);
+          return {
+            timeComplexity: parsed.time_complexity ?? parsed.timeComplexity ?? 'Unable to determine',
+            spaceComplexity: parsed.space_complexity ?? parsed.spaceComplexity ?? 'Unable to determine',
+          };
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      if (payload.timeComplexity || payload.time_complexity) {
+        return {
+          timeComplexity: payload.timeComplexity ?? payload.time_complexity ?? 'Unable to determine',
+          spaceComplexity: payload.spaceComplexity ?? payload.space_complexity ?? 'Unable to determine',
+        };
+      }
+
+      if (payload.response?.text) {
+        try {
+          const rawText = payload.response.text();
+          return parsePayload(rawText);
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      return null;
+    };
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/feedback`,
+        { code },
+        { withCredentials: true }
+      );
+
+      const payload = response.data?.feedback ?? response.data?.analysis ?? response.data?.result ?? response.data;
+      const parsed = parsePayload(payload);
+
+      if (parsed) {
+        setFeedback(parsed);
+      } else {
+        setFeedback(null);
+        setFeedbackError('Could not parse complexity feedback. Please try again.');
+      }
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to generate feedback. Please try again.';
+      setFeedback(null);
+      setFeedbackError(message);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, []);
+
+  const handleClearFeedback = useCallback(() => {
+    setFeedback(null);
+    setFeedbackError(null);
+  }, []);
+
   if (loadingUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -338,6 +432,24 @@ export default function RoomPage() {
             </div>
             <button
               type="button"
+              onClick={handleGenerateFeedback}
+              disabled={feedbackLoading}
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm text-white transition-colors hover:border-white/40 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {feedbackLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Complexity feedback
+                </>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={handleCopyLink}
               className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm text-white transition-colors hover:border-white/40"
             >
@@ -363,6 +475,56 @@ export default function RoomPage() {
             </div>
           </div>
         </header>
+
+        {(feedbackLoading || feedback || feedbackError) && (
+          <div className="border-b border-white/10 bg-black/60 px-6 py-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-gray-400">
+                    <Sparkles className="h-3.5 w-3.5 text-white/80" />
+                    <span>Complexity feedback</span>
+                  </div>
+
+                  {feedbackLoading && (
+                    <div className="flex items-center gap-3 text-sm text-gray-400">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Analyzing your code...</span>
+                    </div>
+                  )}
+
+                  {feedbackError && !feedbackLoading && (
+                    <p className="text-sm text-red-400">{feedbackError}</p>
+                  )}
+
+                  {feedback && !feedbackLoading && (
+                    <div className="grid gap-3 sm:grid-cols-2 text-sm text-gray-300">
+                      <div className="rounded-2xl border border-white/15 bg-black/40 p-4">
+                        <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Time complexity</p>
+                        <p className="mt-2 text-base font-medium text-white">{feedback.timeComplexity}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/15 bg-black/40 p-4">
+                        <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Space complexity</p>
+                        <p className="mt-2 text-base font-medium text-white">{feedback.spaceComplexity}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {(feedback || feedbackError) && !feedbackLoading && (
+                  <button
+                    type="button"
+                    onClick={handleClearFeedback}
+                    className="text-xs uppercase tracking-[0.3em] text-gray-400 hover:text-white transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )}
 
         <div className="lg:hidden border-b border-white/10 bg-black/60 px-6 py-3 flex gap-3 overflow-x-auto">
           {participants.length === 0 && (

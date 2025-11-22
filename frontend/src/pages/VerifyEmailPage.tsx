@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { useToast } from '@/components/ui/toast';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -10,6 +11,7 @@ export default function VerifyEmailPage() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const email = searchParams.get('email') || '';
   const code = searchParams.get('code') || '';
@@ -53,9 +55,17 @@ export default function VerifyEmailPage() {
       await axios.post(`${API_URL}/api/auth/resend-verification?email=${encodeURIComponent(email)}`, {}, {
         withCredentials: true
       });
-      alert('Verification email sent!');
+      toast({
+        title: 'Email sent',
+        description: 'Verification email has been resent. Check your inbox.',
+        variant: 'success',
+      });
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to resend');
+      toast({
+        title: 'Resend failed',
+        description: err.response?.data?.message || 'Failed to resend verification email',
+        variant: 'error',
+      });
     } finally {
       setLoading(false);
     }

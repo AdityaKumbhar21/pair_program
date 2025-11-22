@@ -5,6 +5,7 @@ import http from "http";
 import authRouter from './routes/auth';
 import cookieParser from 'cookie-parser';
 import roomRouter from './routes/rooms';
+import feedbackRouter from './routes/feedback';
 import { getRoomByShortId } from './controllers/roomController';
 import * as Y from 'yjs';
 
@@ -30,6 +31,7 @@ const io = new Server(server, {
 
 app.use("/api/auth", authRouter)
 app.use("/api/rooms", roomRouter)
+app.use("/api/feedback", feedbackRouter)
 
 app.get("/rooms/:shortId",getRoomByShortId)
 

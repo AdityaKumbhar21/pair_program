@@ -227,8 +227,12 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-gray-800 py-8 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Code2 className="w-6 h-6 text-blue-500" />
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Pair Program logo"
+              className="h-9 w-9 rounded-xl border border-white/15 bg-white/5 p-1"
+            />
             <span className="font-bold">Pair Program</span>
           </div>
           <p className="text-gray-500 text-sm">
