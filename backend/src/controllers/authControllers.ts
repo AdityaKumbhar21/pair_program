@@ -44,7 +44,12 @@ export async function signUp(req: Request, res:Response){
 
             const token = generateToken(newUser.id)
 
-            res.cookie("token", token)
+            res.cookie("token", token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            })
             await sendVerificationEmail(email,verifyCode)
 
             return res.status(201).json({
@@ -103,7 +108,7 @@ export async function signIn(req: Request, res: Response){
                 res.cookie("token", token, {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === "production",
-                    sameSite: "strict",
+                    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
                     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
                 })
                 return res.status(200).json({
