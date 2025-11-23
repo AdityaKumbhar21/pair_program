@@ -25,7 +25,7 @@ export async function signUp(req: Request, res:Response){
             "message":"User already exists",
         })
 
-        bcrypt.hash(password, 10, async(err, hash) => {
+        bcrypt.hash(password, 10, async(err: Error | undefined, hash: string) => {
             if(err) return res.status(500).json({
                 "ok": false,
                 "message":"Error while hashing password",
@@ -95,7 +95,7 @@ export async function signIn(req: Request, res: Response){
 
         const hashedPassword = user.password
 
-        bcrypt.compare(password, hashedPassword, (err, result)=>{
+        bcrypt.compare(password, hashedPassword, (err: Error | undefined, result: boolean)=>{
             if(err){
                 return res.status(400).json({
                     "ok": false,
